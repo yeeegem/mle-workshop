@@ -13,7 +13,7 @@ ADD models/2022-01.bin 2022-01.bin
 
 # set the env variables
 ENV MODEL_PATH=2022-01.bin
-ENV MODEL_VERSION=v1_2022_01
+ENV MODEL_VERSION=v1_2022_01_GA_test2
 ENV LOGURU_LEVEL=INFO
 
 # expose the port
