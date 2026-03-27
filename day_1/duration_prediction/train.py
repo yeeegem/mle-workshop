@@ -1,3 +1,7 @@
+import argparse
+from datetime import date
+
+from loguru import logger
 import pandas as pd
 import pickle
 from sklearn.feature_extraction import DictVectorizer
@@ -6,25 +10,78 @@ from sklearn.metrics import mean_squared_error
 from sklearn.pipeline import make_pipeline
 
 
-def read_dataframe(filename):
-    df = pd.read_parquet(filename)
+def read_dataframe(filename: str) -> pd.DataFrame:
+    """
+    Reads a parquet file into a pandas DataFrame, processes the data, and returns a cleaned DataFrame.
 
-    df['duration'] = df.lpep_dropoff_datetime - df.lpep_pickup_datetime
-    df.duration = df.duration.dt.total_seconds() / 60
+    Returns a DataFrame with the following transformations applied:
+        - A 'duration' column representing the ride duration in minutes (calculated as the difference
+          between 'lpep_dropoff_datetime' and 'lpep_pickup_datetime').
+        - The DataFrame is filtered to only include rows where 'duration' is between 1 and 60 minutes.
+        - The columns 'PULocationID' and 'DOLocationID' are converted to string data type.
 
-    df = df[(df.duration >= 1) & (df.duration <= 60)]
+    Parameters:
+    -----------
+    filename : str
+        The path to the parquet file to be read.
 
-    categorical = ['PULocationID', 'DOLocationID']
-    df[categorical] = df[categorical].astype(str)
-    
-    return df
+    Returns:
+    --------
+    pd.DataFrame
+        The transformed df
+        
+
+    Notes:
+    ------
+    - The function assumes that the parquet file contains 'lpep_pickup_datetime' and 'lpep_dropoff_datetime' columns,
+      which are used to compute the 'duration'.
+    - The output DataFrame will not contain rows where the calculated 'duration' is outside the range [1, 60] minutes.
+    """
+    try:
+        df = pd.read_parquet(filename)
+
+        df['duration'] = df.lpep_dropoff_datetime - df.lpep_pickup_datetime
+        df.duration = df.duration.dt.total_seconds() / 60
+
+        df = df[(df.duration >= 1) & (df.duration <= 60)]
+
+        categorical = ['PULocationID', 'DOLocationID']
+        df[categorical] = df[categorical].astype(str)
+        
+        return df
+    except Exception as e:
+        logger.error(f"ERROR: reading {filename} failed")
+        logger.error(e)
+        raise
 
 
-def train():
-    df_train = read_dataframe('https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2022-01.parquet')
-    df_val = read_dataframe('https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2022-02.parquet')
+def train(train_date: date, val_date: date, out_path: str) -> float:
+    """
+    Trains a linear regression model on taxi trip data and saves the trained pipeline.
 
-    print(len(df_train), len(df_val))
+    Parameters:
+    -----------
+    train_date : date
+        The date for the training data (used to construct the file URL).
+    val_date : date
+        The date for the validation data (used to construct the file URL).
+    out_path : str
+        The path where the trained model pipeline will be saved.
+
+    Returns:
+    --------
+    mse: float
+        The validation mse
+    """
+    base_url = 'https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_{year}-{month:02d}.parquet'
+    train_url = base_url.format(year=train_date.year, month=train_date.month)
+    val_url = base_url.format(year=val_date.year, month=val_date.month)
+
+    df_train = read_dataframe(train_url)
+    df_val = read_dataframe(val_url)
+
+    logger.info(f"df_train length is: {len(df_train)}")
+    logger.info(f"df_val length is: {len(df_val)}")
 
     categorical = ['PULocationID', 'DOLocationID']
     numerical = ['trip_distance']
@@ -44,12 +101,11 @@ def train():
     pipeline.fit(train_dicts, y_train)
     y_pred = pipeline.predict(val_dicts)
 
-    print(mean_squared_error(y_val, y_pred, squared=False))
+    mse = mean_squared_error(y_val, y_pred, squared=False)
+    logger.info(f"MSE: {mse}")
 
 
-    with open('lin_reg.bin', 'wb') as f_out:
+    with open(out_path, 'wb') as f_out:
         pickle.dump(pipeline, f_out)
+    return mse
 
-
-if __name__ == "__main__":
-    train()
