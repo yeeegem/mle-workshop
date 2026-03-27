@@ -107,7 +107,7 @@ now we can run training via `make train`
 ## use docker
 - create a Dockerfile
 - build the image via `docker build -t duration-prediction .`
-- run it via `docker run duration-prediction:latest`
+- run it via `docker run -p 8080:8080 duration-prediction:latest`
 - or just use `make docker_run`
 
 ## Lets deploy it to the world via fly.io

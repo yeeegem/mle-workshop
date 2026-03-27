@@ -1,10 +1,10 @@
-# fly.toml app configuration file generated for duration-pred-serve-mle-2026-03 on 2026-03-27T10:49:25Z
+# fly.toml app configuration file generated for vasili-mle on 2026-03-27T19:57:26+01:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'duration-pred-serve-mle-2026-03'
-primary_region = 'cdg'
+app = 'vasili-mle'
+primary_region = 'fra'
 
 [build]
 
@@ -17,6 +17,7 @@ primary_region = 'cdg'
   processes = ['app']
 
 [[vm]]
-  memory = '256mb'
+  memory = '1gb'
+  cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 256
+  memory_mb = 1024
