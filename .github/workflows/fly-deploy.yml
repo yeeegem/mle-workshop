@@ -14,7 +14,8 @@ jobs:
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - run: flyctl deploy --remote-only --config ./day_2/duration_pred_serve/fly.toml
+      - run: flyctl deploy --remote-only
+        working-directory: ./day_2/duration_pred_serve
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
